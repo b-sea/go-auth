@@ -70,16 +70,15 @@ func TestPasswordServiceValidatePassword(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.PasswordConfig{
-			MinLength:      8,
-			MaxLength:      100,
-			RequireUpper:   true,
-			RequireLower:   true,
-			RequireNumber:  true,
-			RequireSpecial: true,
-		}
-
-		pwdService := auth.NewPasswordService(config)
+		pwdService := auth.NewPasswordService(
+			&MockEncryptRepo{},
+			auth.WithMinLength(8),
+			auth.WithMaxLength(100),
+			auth.WithUpper(true),
+			auth.WithLower(true),
+			auth.WithNumber(true),
+			auth.WithSpecial(true),
+		)
 
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
@@ -98,7 +97,7 @@ func TestPasswordServiceVerifyPassword(t *testing.T) {
 	t.Parallel()
 
 	type test struct {
-		encryptRepo auth.IEncryptRepo
+		encryptRepo auth.EncryptRepo
 		password    string
 		hash        string
 		result      bool
@@ -135,17 +134,7 @@ func TestPasswordServiceVerifyPassword(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.PasswordConfig{
-			EncryptRepo:    testCase.encryptRepo,
-			MinLength:      8,
-			MaxLength:      100,
-			RequireUpper:   true,
-			RequireLower:   true,
-			RequireNumber:  true,
-			RequireSpecial: true,
-		}
-
-		pwdService := auth.NewPasswordService(config)
+		pwdService := auth.NewPasswordService(testCase.encryptRepo)
 
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
@@ -166,7 +155,7 @@ func TestPasswordServiceGeneratePasswordHash(t *testing.T) {
 	t.Parallel()
 
 	type test struct {
-		encryptRepo auth.IEncryptRepo
+		encryptRepo auth.EncryptRepo
 		maxLength   int
 		password    string
 		result      string
@@ -208,17 +197,7 @@ func TestPasswordServiceGeneratePasswordHash(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.PasswordConfig{
-			EncryptRepo:    testCase.encryptRepo,
-			MinLength:      8,
-			MaxLength:      testCase.maxLength,
-			RequireUpper:   true,
-			RequireLower:   true,
-			RequireNumber:  true,
-			RequireSpecial: true,
-		}
-
-		pwdService := auth.NewPasswordService(config)
+		pwdService := auth.NewPasswordService(testCase.encryptRepo, auth.WithMaxLength(testCase.maxLength))
 
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()

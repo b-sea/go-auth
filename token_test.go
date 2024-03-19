@@ -58,7 +58,6 @@ func TestTokenService(t *testing.T) {
 	type test struct {
 		publicKey  []byte
 		privateKey []byte
-		signMethod string
 		err        error
 	}
 
@@ -66,24 +65,15 @@ func TestTokenService(t *testing.T) {
 		"success": {
 			publicKey:  []byte(publicKey),
 			privateKey: []byte(privateKey),
-			signMethod: "RS256",
-		},
-		"unknown sign method": {
-			publicKey:  []byte(publicKey),
-			privateKey: []byte(privateKey),
-			signMethod: "SOMETHING_ELSE",
-			err:        auth.ErrRSAKey,
 		},
 		"bad public key": {
 			publicKey:  []byte("-----BAD PUBLIC KEY-----"),
 			privateKey: []byte(privateKey),
-			signMethod: "RS256",
 			err:        auth.ErrRSAKey,
 		},
 		"bad private key": {
 			publicKey:  []byte(publicKey),
 			privateKey: []byte("-----BAD PRIVATE KEY-----"),
-			signMethod: "RS256",
 			err:        auth.ErrRSAKey,
 		},
 	}
@@ -94,16 +84,13 @@ func TestTokenService(t *testing.T) {
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
 
-			config := auth.TokenConfig{
-				PublicKey:      testCase.publicKey,
-				PrivateKey:     testCase.privateKey,
-				SignMethod:     testCase.signMethod,
-				Issuer:         "unit-tests",
-				AccessTimeout:  time.Hour,
-				RefreshTimeout: time.Hour,
-			}
-
-			_, err := auth.NewTokenService(config)
+			_, err := auth.NewTokenService(
+				testCase.publicKey,
+				testCase.privateKey,
+				auth.WithIssuer("unit-tests"),
+				auth.WithAccessTimeout(time.Hour),
+				auth.WithRefreshTimeout(time.Hour),
+			)
 
 			if testCase.err == nil {
 				assert.NoError(t, err, "no error expected")
@@ -156,20 +143,15 @@ func TestTokenServiceGenerateAccessToken(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.TokenConfig{
-			PublicKey:      []byte(publicKey),
-			PrivateKey:     []byte(privateKey),
-			SignMethod:     "RS256",
-			Issuer:         testCase.issuer,
-			Audience:       testCase.audience,
-			AccessTimeout:  time.Hour,
-			RefreshTimeout: time.Hour,
-			IDGenerator: func() string {
-				return "1234-my-id-5678"
-			},
-		}
-
-		tokenService, err := auth.NewTokenService(config)
+		tokenService, err := auth.NewTokenService(
+			[]byte(publicKey),
+			[]byte(privateKey),
+			auth.WithIssuer(testCase.issuer),
+			auth.WithAudience(testCase.audience),
+			auth.WithAccessTimeout(time.Hour),
+			auth.WithRefreshTimeout(time.Hour),
+			auth.WithIDGenerator(func() string { return "1234-my-id-5678" }),
+		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")
 		}
@@ -231,20 +213,15 @@ func TestTokenServiceGenerateRefreshToken(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.TokenConfig{
-			PublicKey:      []byte(publicKey),
-			PrivateKey:     []byte(privateKey),
-			SignMethod:     "RS256",
-			Issuer:         testCase.issuer,
-			Audience:       testCase.audience,
-			AccessTimeout:  time.Hour,
-			RefreshTimeout: time.Hour,
-			IDGenerator: func() string {
-				return "1234-my-id-5678"
-			},
-		}
-
-		tokenService, err := auth.NewTokenService(config)
+		tokenService, err := auth.NewTokenService(
+			[]byte(publicKey),
+			[]byte(privateKey),
+			auth.WithIssuer(testCase.issuer),
+			auth.WithAudience(testCase.audience),
+			auth.WithAccessTimeout(time.Hour),
+			auth.WithRefreshTimeout(time.Hour),
+			auth.WithIDGenerator(func() string { return "1234-my-id-5678" }),
+		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")
 		}
@@ -306,17 +283,15 @@ func TestTokenServiceParseAccessToken(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.TokenConfig{
-			PublicKey:      []byte(publicKey),
-			PrivateKey:     []byte(privateKey),
-			SignMethod:     "RS256",
-			Issuer:         "unit-tests",
-			Audience:       "special-service",
-			AccessTimeout:  time.Hour,
-			RefreshTimeout: time.Hour,
-		}
-
-		tokenService, err := auth.NewTokenService(config)
+		tokenService, err := auth.NewTokenService(
+			[]byte(publicKey),
+			[]byte(privateKey),
+			auth.WithIssuer("unit-tests"),
+			auth.WithAudience("special-service"),
+			auth.WithAccessTimeout(time.Hour),
+			auth.WithRefreshTimeout(time.Hour),
+			auth.WithIDGenerator(func() string { return "1234-my-id-5678" }),
+		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")
 		}
@@ -378,17 +353,15 @@ func TestTokenServiceParseRefreshToken(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.TokenConfig{
-			PublicKey:      []byte(publicKey),
-			PrivateKey:     []byte(privateKey),
-			SignMethod:     "RS256",
-			Issuer:         "unit-tests",
-			Audience:       "special-service",
-			AccessTimeout:  time.Hour,
-			RefreshTimeout: time.Hour,
-		}
-
-		tokenService, err := auth.NewTokenService(config)
+		tokenService, err := auth.NewTokenService(
+			[]byte(publicKey),
+			[]byte(privateKey),
+			auth.WithIssuer("unit-tests"),
+			auth.WithAudience("special-service"),
+			auth.WithAccessTimeout(time.Hour),
+			auth.WithRefreshTimeout(time.Hour),
+			auth.WithIDGenerator(func() string { return "1234-my-id-5678" }),
+		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")
 		}
@@ -449,16 +422,13 @@ func TestFromHeader(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.TokenConfig{
-			PublicKey:      []byte(publicKey),
-			PrivateKey:     []byte(privateKey),
-			SignMethod:     "RS256",
-			Issuer:         "unit-tests",
-			AccessTimeout:  time.Hour,
-			RefreshTimeout: time.Hour,
-		}
-
-		tokenService, err := auth.NewTokenService(config)
+		tokenService, err := auth.NewTokenService(
+			[]byte(publicKey),
+			[]byte(privateKey),
+			auth.WithIssuer("unit-tests"),
+			auth.WithAccessTimeout(time.Hour),
+			auth.WithRefreshTimeout(time.Hour),
+		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")
 		}

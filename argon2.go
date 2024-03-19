@@ -21,17 +21,36 @@ func decodeHashError(value interface{}) error {
 	return fmt.Errorf("%w: %v", ErrDecodeHash, value)
 }
 
-// IEncryptRepo defines all functions required for hashing data.
-type IEncryptRepo interface {
-	Verify(input string, hash string) (bool, error)
-	Generate(input string) (string, error)
+// Argon2Option is a argon2 repo creation option.
+type Argon2Option func(*Argon2Repo)
+
+// WithParams sets the argon2 parameters.
+// Defaults to
+//
+//	    Memory:     12
+//	    Passes:     1
+//		   Threads:    3
+//		   SaltLength: 16
+//		   KeyLength:  32
+func WithParams(params Argon2Params) Argon2Option {
+	return func(ar *Argon2Repo) {
+		ar.params = params
+	}
 }
 
-// Argon2Config defines all fields required to create an Argon2Repo.
-type Argon2Config struct {
-	Params *Argon2Params
-	Salt   func(uint32) ([]byte, error)
-	Pepper string
+// WithSalt sets the salt generator function.
+// Defaults to a randomly generated value.
+func WithSalt(salt func(uint32) ([]byte, error)) Argon2Option {
+	return func(ar *Argon2Repo) {
+		ar.salt = salt
+	}
+}
+
+// WithPepper sets a pepper value.
+func WithPepper(pepper string) Argon2Option {
+	return func(ar *Argon2Repo) {
+		ar.pepper = pepper
+	}
 }
 
 // Argon2Params defines all fields for encrypting with Argon2.
@@ -51,26 +70,24 @@ type Argon2Repo struct {
 }
 
 // NewArgon2Repo creates a new Argon2Repo.
-func NewArgon2Repo(config Argon2Config) *Argon2Repo {
-	if config.Params == nil {
-		config.Params = &Argon2Params{
+func NewArgon2Repo(opts ...Argon2Option) *Argon2Repo {
+	repo := &Argon2Repo{
+		params: Argon2Params{
 			Memory:     12, //nolint: gomnd
 			Passes:     1,
 			Threads:    3,  //nolint: gomnd
 			SaltLength: 16, //nolint: gomnd
 			KeyLength:  32, //nolint: gomnd
-		}
+		},
+		salt:   generateRandomBytes,
+		pepper: "",
 	}
 
-	if config.Salt == nil {
-		config.Salt = generateRandomBytes
+	for _, opt := range opts {
+		opt(repo)
 	}
 
-	return &Argon2Repo{
-		params: *config.Params,
-		salt:   config.Salt,
-		pepper: config.Pepper,
-	}
+	return repo
 }
 
 // Verify compares an input string with an encoded hash string.
