@@ -1,5 +1,5 @@
-// Package auth is responsible for managing authentication and authorization.
-package auth
+// Package encrypt is responsible for encryption.
+package encrypt
 
 import (
 	"crypto/rand"

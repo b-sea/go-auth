@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/b-sea/go-auth/encrypt"
 )
 
 const (
@@ -18,12 +20,6 @@ type InvalidPasswordError struct {
 
 func (e InvalidPasswordError) Error() string {
 	return "invalid password: " + strings.Join(e.Issues, ", ")
-}
-
-// EncryptRepo defines all functions required for hashing data.
-type EncryptRepo interface {
-	Verify(input string, hash string) (bool, error)
-	Generate(input string) (string, error)
 }
 
 // PasswordOption is a password service creation option.
@@ -75,7 +71,7 @@ func WithNumber(require bool) PasswordOption {
 
 // PasswordService implements a standard password managing service.
 type PasswordService struct {
-	encrypt EncryptRepo
+	repo encrypt.Repository
 
 	minLength      int
 	maxLength      int
@@ -86,9 +82,9 @@ type PasswordService struct {
 }
 
 // NewPasswordService creates a new PasswordService.
-func NewPasswordService(encrypt EncryptRepo, opts ...PasswordOption) *PasswordService {
+func NewPasswordService(repo encrypt.Repository, opts ...PasswordOption) *PasswordService {
 	service := &PasswordService{
-		encrypt:   encrypt,
+		repo:      repo,
 		minLength: 0,
 		maxLength: maxLength,
 	}
@@ -153,7 +149,7 @@ func (s *PasswordService) ValidatePassword(password string) error {
 
 // VerifyPassword compares a password to a hashed password.
 func (s *PasswordService) VerifyPassword(password string, passwordHash string) (bool, error) {
-	result, err := s.encrypt.Verify(password, passwordHash)
+	result, err := s.repo.Verify(password, passwordHash)
 	if err != nil {
 		return false, fmt.Errorf("%w", err)
 	}
@@ -168,7 +164,7 @@ func (s *PasswordService) GeneratePasswordHash(password string) (string, error) 
 		password = string(runes[:s.maxLength])
 	}
 
-	result, err := s.encrypt.Generate(password)
+	result, err := s.repo.Generate(password)
 	if err != nil {
 		return "", fmt.Errorf("%w", err)
 	}

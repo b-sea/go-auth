@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/b-sea/go-auth"
+	"github.com/b-sea/go-auth/encrypt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,16 +98,16 @@ func TestPasswordServiceVerifyPassword(t *testing.T) {
 	t.Parallel()
 
 	type test struct {
-		encryptRepo auth.EncryptRepo
-		password    string
-		hash        string
-		result      bool
-		err         error
+		repo     encrypt.Repository
+		password string
+		hash     string
+		result   bool
+		err      error
 	}
 
 	testCases := map[string]test{
 		"matched": {
-			encryptRepo: &MockEncryptRepo{
+			repo: &MockEncryptRepo{
 				VerifyResult: true,
 			},
 			password: "password",
@@ -114,7 +115,7 @@ func TestPasswordServiceVerifyPassword(t *testing.T) {
 			result:   true,
 		},
 		"no match": {
-			encryptRepo: &MockEncryptRepo{
+			repo: &MockEncryptRepo{
 				VerifyResult: false,
 			},
 			password: "password",
@@ -122,7 +123,7 @@ func TestPasswordServiceVerifyPassword(t *testing.T) {
 			result:   false,
 		},
 		"error": {
-			encryptRepo: &MockEncryptRepo{
+			repo: &MockEncryptRepo{
 				VerifyErr: errors.New("some hash error"),
 			},
 			password: "password",
@@ -134,7 +135,7 @@ func TestPasswordServiceVerifyPassword(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		pwdService := auth.NewPasswordService(testCase.encryptRepo)
+		pwdService := auth.NewPasswordService(testCase.repo)
 
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
@@ -155,30 +156,30 @@ func TestPasswordServiceGeneratePasswordHash(t *testing.T) {
 	t.Parallel()
 
 	type test struct {
-		encryptRepo auth.EncryptRepo
-		maxLength   int
-		password    string
-		result      string
-		err         error
+		repo      encrypt.Repository
+		maxLength int
+		password  string
+		result    string
+		err       error
 	}
 
 	testCases := map[string]test{
 		"success": {
-			encryptRepo: &MockEncryptRepo{
+			repo: &MockEncryptRepo{
 				GenerateResult: "1a2b3c4d",
 			},
 			password: "password",
 			result:   "1a2b3c4d",
 		},
 		"really long password": {
-			encryptRepo: &MockEncryptRepo{
+			repo: &MockEncryptRepo{
 				GenerateResult: "1a2b3c4d",
 			},
 			password: "this is a really long password, how are you today? i'm doing fine, thanks for asking.",
 			result:   "1a2b3c4d",
 		},
 		"truncated length": {
-			encryptRepo: &MockEncryptRepo{
+			repo: &MockEncryptRepo{
 				GenerateResult: "1a2b3c4d",
 			},
 			maxLength: 20,
@@ -186,7 +187,7 @@ func TestPasswordServiceGeneratePasswordHash(t *testing.T) {
 			result:    "1a2b3c4d",
 		},
 		"error": {
-			encryptRepo: &MockEncryptRepo{
+			repo: &MockEncryptRepo{
 				GenerateErr: errors.New("some hash error"),
 			},
 			password: "password",
@@ -197,7 +198,7 @@ func TestPasswordServiceGeneratePasswordHash(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		pwdService := auth.NewPasswordService(testCase.encryptRepo, auth.WithMaxLength(testCase.maxLength))
+		pwdService := auth.NewPasswordService(testCase.repo, auth.WithMaxLength(testCase.maxLength))
 
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
