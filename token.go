@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -46,25 +45,45 @@ func jwtClaimError(value interface{}) error {
 	return fmt.Errorf("%w: %v", ErrJWTClaim, value)
 }
 
-// ITokenService defines all functions required for managing auth tokens.
-type ITokenService interface {
-	ParseAccessToken(tokenString string) (*jwt.Token, error)
-	ParseRefreshToken(tokenString string) (*jwt.Token, error)
-	GenerateAccessToken(sub string) (string, error)
-	GenerateRefreshToken(sub string) (string, error)
-	FromHeader(header http.Header) (string, bool)
+// TokenOption is a token service creation option.
+type TokenOption func(*TokenService)
+
+// WithIssuer sets the token iss claim.
+func WithIssuer(iss string) TokenOption {
+	return func(ts *TokenService) {
+		ts.issuer = iss
+	}
 }
 
-// TokenConfig defines all fields required to create a TokenService.
-type TokenConfig struct {
-	SignMethod     string
-	PublicKey      []byte
-	PrivateKey     []byte
-	Issuer         string
-	Audience       string
-	AccessTimeout  time.Duration
-	RefreshTimeout time.Duration
-	IDGenerator    func() string
+// WithAudience sets the token aud claim.
+func WithAudience(aud string) TokenOption {
+	return func(ts *TokenService) {
+		ts.audience = aud
+	}
+}
+
+// WithAccessTimeout sets the access token timeout.
+// Defaults to 15 minutes.
+func WithAccessTimeout(timeout time.Duration) TokenOption {
+	return func(ts *TokenService) {
+		ts.accessTimeout = timeout
+	}
+}
+
+// WithRefreshTimeout sets the refresh token timeout.
+// Defaults to 30 days.
+func WithRefreshTimeout(timeout time.Duration) TokenOption {
+	return func(ts *TokenService) {
+		ts.refreshTimeout = timeout
+	}
+}
+
+// WithIDGenerator sets the function to set token ids.
+// Defaults to uuid.NewString.
+func WithIDGenerator(generator func() string) TokenOption {
+	return func(ts *TokenService) {
+		ts.idGenerator = generator
+	}
 }
 
 // TokenService implements a standard JWT auth service.
@@ -80,43 +99,31 @@ type TokenService struct {
 }
 
 // NewTokenService creates a new TokenService.
-func NewTokenService(config TokenConfig) (*TokenService, error) {
-	if config.SignMethod != "RS256" {
-		return nil, rsaKeyError("only sign method RS256 is currently supported")
-	}
-
-	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(config.PublicKey)
+func NewTokenService(publicKey []byte, privateKey []byte, opts ...TokenOption) (*TokenService, error) {
+	verifyKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKey)
 	if err != nil {
 		return nil, rsaKeyError(err)
 	}
 
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(config.PrivateKey)
+	signKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKey)
 	if err != nil {
 		return nil, rsaKeyError(err)
 	}
 
-	if config.Issuer == "" {
-		logrus.Warn("No issuer defined for token service")
+	service := &TokenService{
+		signMethod:     "RS256",
+		verifyKey:      verifyKey,
+		signKey:        signKey,
+		accessTimeout:  15 * time.Minute, //nolint: gomnd
+		refreshTimeout: 30 * 24 * time.Hour,
+		idGenerator:    uuid.NewString,
 	}
 
-	if config.Audience == "" {
-		logrus.Warn("No audience defined for token service")
+	for _, opt := range opts {
+		opt(service)
 	}
 
-	if config.IDGenerator == nil {
-		config.IDGenerator = uuid.NewString
-	}
-
-	return &TokenService{
-		signMethod:     config.SignMethod,
-		verifyKey:      publicKey,
-		signKey:        privateKey,
-		issuer:         config.Issuer,
-		audience:       config.Audience,
-		accessTimeout:  config.AccessTimeout,
-		refreshTimeout: config.RefreshTimeout,
-		idGenerator:    config.IDGenerator,
-	}, nil
+	return service, nil
 }
 
 // ParseAccessToken verifies and transforms a given token string into an access JWT.

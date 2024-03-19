@@ -6,7 +6,10 @@ import (
 	"unicode"
 )
 
-const maxLength = 255
+const (
+	minLength = 10
+	maxLength = 255
+)
 
 // InvalidPasswordError is raised when a password does not pass validation.
 type InvalidPasswordError struct {
@@ -17,29 +20,62 @@ func (e InvalidPasswordError) Error() string {
 	return "invalid password: " + strings.Join(e.Issues, ", ")
 }
 
-// IPasswordService defines all functions required for managing passwords.
-type IPasswordService interface {
-	ValidatePassword(password string) error
-	VerifyPassword(password string, passwordHash string) (bool, error)
-
-	GeneratePasswordHash(password string) (string, error)
+// EncryptRepo defines all functions required for hashing data.
+type EncryptRepo interface {
+	Verify(input string, hash string) (bool, error)
+	Generate(input string) (string, error)
 }
 
-// PasswordConfig defines all fields required to create a PasswordService.
-type PasswordConfig struct {
-	EncryptRepo IEncryptRepo
+// PasswordOption is a password service creation option.
+type PasswordOption func(*PasswordService)
 
-	MinLength      int
-	MaxLength      int
-	RequireUpper   bool
-	RequireLower   bool
-	RequireNumber  bool
-	RequireSpecial bool
+// WithMaxLength sets the maximum password length.
+// Defaults to 255.
+func WithMaxLength(max int) PasswordOption {
+	return func(ps *PasswordService) {
+		ps.maxLength = max
+	}
+}
+
+// WithMinLength sets the minimum password length.
+// Defaults to 10.
+func WithMinLength(min int) PasswordOption {
+	return func(ps *PasswordService) {
+		ps.minLength = min
+	}
+}
+
+// WithUpper requires an upper case character in the password.
+func WithUpper(require bool) PasswordOption {
+	return func(ps *PasswordService) {
+		ps.requireUpper = require
+	}
+}
+
+// WithLower requires a lower case character in the password.
+func WithLower(require bool) PasswordOption {
+	return func(ps *PasswordService) {
+		ps.requireLower = require
+	}
+}
+
+// WithSpecial requires a special character in the password.
+func WithSpecial(require bool) PasswordOption {
+	return func(ps *PasswordService) {
+		ps.requireSpecial = require
+	}
+}
+
+// WithNumber requires a number character in the password.
+func WithNumber(require bool) PasswordOption {
+	return func(ps *PasswordService) {
+		ps.requireNumber = require
+	}
 }
 
 // PasswordService implements a standard password managing service.
 type PasswordService struct {
-	encryptRepo IEncryptRepo
+	encrypt EncryptRepo
 
 	minLength      int
 	maxLength      int
@@ -50,20 +86,18 @@ type PasswordService struct {
 }
 
 // NewPasswordService creates a new PasswordService.
-func NewPasswordService(config PasswordConfig) *PasswordService {
-	if config.MaxLength == 0 {
-		config.MaxLength = maxLength
+func NewPasswordService(encrypt EncryptRepo, opts ...PasswordOption) *PasswordService {
+	service := &PasswordService{
+		encrypt:   encrypt,
+		minLength: 0,
+		maxLength: maxLength,
 	}
 
-	return &PasswordService{
-		encryptRepo:    config.EncryptRepo,
-		minLength:      config.MinLength,
-		maxLength:      config.MaxLength,
-		requireUpper:   config.RequireUpper,
-		requireLower:   config.RequireLower,
-		requireNumber:  config.RequireNumber,
-		requireSpecial: config.RequireSpecial,
+	for _, opt := range opts {
+		opt(service)
 	}
+
+	return service
 }
 
 // ValidatePassword checks a given password against any enabled complexity rules.
@@ -119,7 +153,7 @@ func (s *PasswordService) ValidatePassword(password string) error {
 
 // VerifyPassword compares a password to a hashed password.
 func (s *PasswordService) VerifyPassword(password string, passwordHash string) (bool, error) {
-	result, err := s.encryptRepo.Verify(password, passwordHash)
+	result, err := s.encrypt.Verify(password, passwordHash)
 	if err != nil {
 		return false, fmt.Errorf("%w", err)
 	}
@@ -134,7 +168,7 @@ func (s *PasswordService) GeneratePasswordHash(password string) (string, error) 
 		password = string(runes[:s.maxLength])
 	}
 
-	result, err := s.encryptRepo.Generate(password)
+	result, err := s.encrypt.Generate(password)
 	if err != nil {
 		return "", fmt.Errorf("%w", err)
 	}

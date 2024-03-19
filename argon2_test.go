@@ -69,11 +69,7 @@ func TestArgon2RepoVerify(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		config := auth.Argon2Config{
-			Pepper: testCase.pepper,
-		}
-
-		argon2 := auth.NewArgon2Repo(config)
+		argon2 := auth.NewArgon2Repo(auth.WithPepper(testCase.pepper))
 
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
@@ -121,12 +117,7 @@ func TestArgon2RepoGenerate(t *testing.T) {
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
 
-			config := auth.Argon2Config{
-				Salt:   testCase.salt,
-				Pepper: testCase.pepper,
-			}
-
-			argon2 := auth.NewArgon2Repo(config)
+			argon2 := auth.NewArgon2Repo(auth.WithSalt(testCase.salt), auth.WithPepper(testCase.pepper))
 			result, err := argon2.Generate(testCase.input)
 
 			assert.Equal(t, testCase.result, result, "different results")

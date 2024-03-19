@@ -1,5 +1,9 @@
 # IDE
 .idea
+.vscode
+.editorconfig
+
+.env
 
 # Mac OS X files
 .DS_Store
@@ -20,7 +24,8 @@
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
 
+# Project stuff
+.cert/
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
-
-.env

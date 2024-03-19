@@ -1,0 +1,48 @@
+issues:
+  max-per-linter: 0
+  max-same-issues: 0
+  exclude-use-default: false
+
+linters:
+  enable-all: true
+  disable:
+    - varcheck
+    - nosnakecase
+    - golint
+    - maligned
+    - structcheck
+    - scopelint
+    - deadcode
+    - ifshort
+    - exhaustivestruct
+    - interfacer
+    - exhaustruct
+    - depguard
+    - testifylint
+    - godox
+    - nlreturn
+    - musttag
+    - dupl
+
+linters-settings:
+  cyclop:
+    max-complexity: 18
+    package-average: 10.0
+
+  tagliatelle:
+    case:
+      use-field-name: true
+      rules:
+        json: camel
+        yaml: camel
+        mapstructure: camel
+
+  varnamelen:
+    ignore-type-assert-ok: true
+    ignore-map-ok: true
+    ignore-chan-recv-ok: true
+    ignore-names:
+      - id
+
+run: 
+  tests: false
