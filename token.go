@@ -5,25 +5,17 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
-type (
-	contextKey int
-	tokenType  string
-)
+type tokenType string
 
 const (
 	tokenAccessAud  tokenType = "access"
 	tokenRefreshAud tokenType = "refresh"
-	headerKey                 = "Authorization"
-	headerTokenType           = "Bearer "
-	contextTokenKey           = contextKey(1)
 )
 
 var (
@@ -207,19 +199,4 @@ func (s *TokenService) generateToken(sub string, tokenTypeAud tokenType) (string
 	signed, _ := token.SignedString(s.signKey)
 
 	return signed, nil
-}
-
-// FromHeader retrieves a token string from the given headers, if it exists.
-func (s *TokenService) FromHeader(header http.Header) (string, bool) {
-	bearer := header[headerKey]
-	if bearer == nil || len(bearer) != 1 {
-		return "", false
-	}
-
-	token, ok := strings.CutPrefix(bearer[0], headerTokenType)
-	if !ok {
-		return "", false
-	}
-
-	return token, true
 }
