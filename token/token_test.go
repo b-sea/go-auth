@@ -1,10 +1,10 @@
-package auth_test
+package token_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/b-sea/go-auth"
+	"github.com/b-sea/go-auth/token"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -68,12 +68,12 @@ func TestTokenService(t *testing.T) {
 		"bad public key": {
 			publicKey:  []byte("-----BAD PUBLIC KEY-----"),
 			privateKey: []byte(privateKey),
-			err:        auth.ErrRSAKey,
+			err:        token.ErrRSAKey,
 		},
 		"bad private key": {
 			publicKey:  []byte(publicKey),
 			privateKey: []byte("-----BAD PRIVATE KEY-----"),
-			err:        auth.ErrRSAKey,
+			err:        token.ErrRSAKey,
 		},
 	}
 
@@ -83,12 +83,12 @@ func TestTokenService(t *testing.T) {
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
 
-			_, err := auth.NewTokenService(
+			_, err := token.NewService(
 				testCase.publicKey,
 				testCase.privateKey,
-				auth.WithIssuer("unit-tests"),
-				auth.WithAccessTimeout(time.Hour),
-				auth.WithRefreshTimeout(time.Hour),
+				token.WithIssuer("unit-tests"),
+				token.WithAccessTimeout(time.Hour),
+				token.WithRefreshTimeout(time.Hour),
 			)
 
 			if testCase.err == nil {
@@ -103,7 +103,7 @@ func TestTokenService(t *testing.T) {
 func TestTokenServiceGenerateAccessToken(t *testing.T) {
 	t.Parallel()
 
-	auth.Timestamp = func() time.Time {
+	token.Timestamp = func() time.Time {
 		return time.Date(2009, 11, 10, 12, 30, 0, 0, time.Local)
 	}
 
@@ -135,21 +135,21 @@ func TestTokenServiceGenerateAccessToken(t *testing.T) {
 		"no subject": {
 			issuer:   "unit-tests",
 			audience: "special-service",
-			err:      auth.ErrJWTClaim,
+			err:      token.ErrJWTClaim,
 		},
 	}
 
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		tokenService, err := auth.NewTokenService(
+		tokenService, err := token.NewService(
 			[]byte(publicKey),
 			[]byte(privateKey),
-			auth.WithIssuer(testCase.issuer),
-			auth.WithAudience(testCase.audience),
-			auth.WithAccessTimeout(time.Hour),
-			auth.WithRefreshTimeout(time.Hour),
-			auth.WithIDGenerator(func() string { return "1234-my-id-5678" }),
+			token.WithIssuer(testCase.issuer),
+			token.WithAudience(testCase.audience),
+			token.WithAccessTimeout(time.Hour),
+			token.WithRefreshTimeout(time.Hour),
+			token.WithIDGenerator(func() string { return "1234-my-id-5678" }),
 		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")
@@ -173,7 +173,7 @@ func TestTokenServiceGenerateAccessToken(t *testing.T) {
 func TestTokenServiceGenerateRefreshToken(t *testing.T) {
 	t.Parallel()
 
-	auth.Timestamp = func() time.Time {
+	token.Timestamp = func() time.Time {
 		return time.Date(2009, 11, 10, 12, 30, 0, 0, time.Local)
 	}
 
@@ -205,21 +205,21 @@ func TestTokenServiceGenerateRefreshToken(t *testing.T) {
 		"no subject": {
 			issuer:   "unit-tests",
 			audience: "special-service",
-			err:      auth.ErrJWTClaim,
+			err:      token.ErrJWTClaim,
 		},
 	}
 
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		tokenService, err := auth.NewTokenService(
+		tokenService, err := token.NewService(
 			[]byte(publicKey),
 			[]byte(privateKey),
-			auth.WithIssuer(testCase.issuer),
-			auth.WithAudience(testCase.audience),
-			auth.WithAccessTimeout(time.Hour),
-			auth.WithRefreshTimeout(time.Hour),
-			auth.WithIDGenerator(func() string { return "1234-my-id-5678" }),
+			token.WithIssuer(testCase.issuer),
+			token.WithAudience(testCase.audience),
+			token.WithAccessTimeout(time.Hour),
+			token.WithRefreshTimeout(time.Hour),
+			token.WithIDGenerator(func() string { return "1234-my-id-5678" }),
 		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")
@@ -282,14 +282,14 @@ func TestTokenServiceParseAccessToken(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		tokenService, err := auth.NewTokenService(
+		tokenService, err := token.NewService(
 			[]byte(publicKey),
 			[]byte(privateKey),
-			auth.WithIssuer("unit-tests"),
-			auth.WithAudience("special-service"),
-			auth.WithAccessTimeout(time.Hour),
-			auth.WithRefreshTimeout(time.Hour),
-			auth.WithIDGenerator(func() string { return "1234-my-id-5678" }),
+			token.WithIssuer("unit-tests"),
+			token.WithAudience("special-service"),
+			token.WithAccessTimeout(time.Hour),
+			token.WithRefreshTimeout(time.Hour),
+			token.WithIDGenerator(func() string { return "1234-my-id-5678" }),
 		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")
@@ -352,14 +352,14 @@ func TestTokenServiceParseRefreshToken(t *testing.T) {
 	for name, testCase := range testCases {
 		name, testCase := name, testCase
 
-		tokenService, err := auth.NewTokenService(
+		tokenService, err := token.NewService(
 			[]byte(publicKey),
 			[]byte(privateKey),
-			auth.WithIssuer("unit-tests"),
-			auth.WithAudience("special-service"),
-			auth.WithAccessTimeout(time.Hour),
-			auth.WithRefreshTimeout(time.Hour),
-			auth.WithIDGenerator(func() string { return "1234-my-id-5678" }),
+			token.WithIssuer("unit-tests"),
+			token.WithAudience("special-service"),
+			token.WithAccessTimeout(time.Hour),
+			token.WithRefreshTimeout(time.Hour),
+			token.WithIDGenerator(func() string { return "1234-my-id-5678" }),
 		)
 		if err == nil {
 			assert.NoError(t, err, "no error expected during service creation")

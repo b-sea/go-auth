@@ -1,5 +1,5 @@
-// Package auth is responsible for managing authentication and authorization.
-package auth
+// Package token is responsible for managing tokens.
+package token
 
 import (
 	"crypto/rsa"
@@ -14,8 +14,8 @@ import (
 type tokenType string
 
 const (
-	tokenAccessAud  tokenType = "access"
-	tokenRefreshAud tokenType = "refresh"
+	accessAud  tokenType = "access"
+	refreshAud tokenType = "refresh"
 )
 
 var (
@@ -37,49 +37,49 @@ func jwtClaimError(value interface{}) error {
 	return fmt.Errorf("%w: %v", ErrJWTClaim, value)
 }
 
-// TokenOption is a token service creation option.
-type TokenOption func(*TokenService)
+// Option is a token service creation option.
+type Option func(*Service)
 
 // WithIssuer sets the token iss claim.
-func WithIssuer(iss string) TokenOption {
-	return func(ts *TokenService) {
+func WithIssuer(iss string) Option {
+	return func(ts *Service) {
 		ts.issuer = iss
 	}
 }
 
 // WithAudience sets the token aud claim.
-func WithAudience(aud string) TokenOption {
-	return func(ts *TokenService) {
+func WithAudience(aud string) Option {
+	return func(ts *Service) {
 		ts.audience = aud
 	}
 }
 
 // WithAccessTimeout sets the access token timeout.
 // Defaults to 15 minutes.
-func WithAccessTimeout(timeout time.Duration) TokenOption {
-	return func(ts *TokenService) {
+func WithAccessTimeout(timeout time.Duration) Option {
+	return func(ts *Service) {
 		ts.accessTimeout = timeout
 	}
 }
 
 // WithRefreshTimeout sets the refresh token timeout.
 // Defaults to 30 days.
-func WithRefreshTimeout(timeout time.Duration) TokenOption {
-	return func(ts *TokenService) {
+func WithRefreshTimeout(timeout time.Duration) Option {
+	return func(ts *Service) {
 		ts.refreshTimeout = timeout
 	}
 }
 
 // WithIDGenerator sets the function to set token ids.
 // Defaults to uuid.NewString.
-func WithIDGenerator(generator func() string) TokenOption {
-	return func(ts *TokenService) {
+func WithIDGenerator(generator func() string) Option {
+	return func(ts *Service) {
 		ts.idGenerator = generator
 	}
 }
 
-// TokenService implements a standard JWT auth service.
-type TokenService struct {
+// Service implements a standard JWT auth service.
+type Service struct {
 	signMethod     string
 	signKey        *rsa.PrivateKey
 	verifyKey      *rsa.PublicKey
@@ -90,8 +90,8 @@ type TokenService struct {
 	idGenerator    func() string
 }
 
-// NewTokenService creates a new TokenService.
-func NewTokenService(publicKey []byte, privateKey []byte, opts ...TokenOption) (*TokenService, error) {
+// NewService creates a new Service.
+func NewService(publicKey []byte, privateKey []byte, opts ...Option) (*Service, error) {
 	verifyKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKey)
 	if err != nil {
 		return nil, rsaKeyError(err)
@@ -102,7 +102,7 @@ func NewTokenService(publicKey []byte, privateKey []byte, opts ...TokenOption) (
 		return nil, rsaKeyError(err)
 	}
 
-	service := &TokenService{
+	service := &Service{
 		signMethod:     "RS256",
 		verifyKey:      verifyKey,
 		signKey:        signKey,
@@ -119,16 +119,16 @@ func NewTokenService(publicKey []byte, privateKey []byte, opts ...TokenOption) (
 }
 
 // ParseAccessToken verifies and transforms a given token string into an access JWT.
-func (s *TokenService) ParseAccessToken(tokenString string) (*jwt.Token, error) {
-	return s.parseToken(tokenString, tokenAccessAud)
+func (s *Service) ParseAccessToken(tokenString string) (*jwt.Token, error) {
+	return s.parseToken(tokenString, accessAud)
 }
 
 // ParseRefreshToken verifies and transforms a given token string into a refresh JWT.
-func (s *TokenService) ParseRefreshToken(tokenString string) (*jwt.Token, error) {
-	return s.parseToken(tokenString, tokenRefreshAud)
+func (s *Service) ParseRefreshToken(tokenString string) (*jwt.Token, error) {
+	return s.parseToken(tokenString, refreshAud)
 }
 
-func (s *TokenService) parseToken(tokenString string, tokenTypAud tokenType) (*jwt.Token, error) {
+func (s *Service) parseToken(tokenString string, tokenTypAud tokenType) (*jwt.Token, error) {
 	var claims jwt.RegisteredClaims
 
 	options := []jwt.ParserOption{
@@ -161,16 +161,16 @@ func (s *TokenService) parseToken(tokenString string, tokenTypAud tokenType) (*j
 }
 
 // GenerateAccessToken creates and signes a new access JWT.
-func (s *TokenService) GenerateAccessToken(sub string) (string, error) {
-	return s.generateToken(sub, tokenAccessAud)
+func (s *Service) GenerateAccessToken(sub string) (string, error) {
+	return s.generateToken(sub, accessAud)
 }
 
 // GenerateRefreshToken creates and signes a new refresh JWT.
-func (s *TokenService) GenerateRefreshToken(sub string) (string, error) {
-	return s.generateToken(sub, tokenRefreshAud)
+func (s *Service) GenerateRefreshToken(sub string) (string, error) {
+	return s.generateToken(sub, refreshAud)
 }
 
-func (s *TokenService) generateToken(sub string, tokenTypeAud tokenType) (string, error) {
+func (s *Service) generateToken(sub string, tokenTypeAud tokenType) (string, error) {
 	if sub == "" {
 		return "", jwtClaimError("missing sub claim")
 	}
