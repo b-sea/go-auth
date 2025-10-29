@@ -28,17 +28,17 @@ type Option func(*Service)
 
 // WithMaxLength sets the maximum password length.
 // Defaults to 255.
-func WithMaxLength(max int) Option {
+func WithMaxLength(length int) Option {
 	return func(ps *Service) {
-		ps.maxLength = max
+		ps.maxLength = length
 	}
 }
 
 // WithMinLength sets the minimum password length.
 // Defaults to 10.
-func WithMinLength(min int) Option {
+func WithMinLength(length int) Option {
 	return func(ps *Service) {
-		ps.minLength = min
+		ps.minLength = length
 	}
 }
 
@@ -98,7 +98,7 @@ func NewService(repo encrypt.Repository, opts ...Option) *Service {
 }
 
 // ValidatePassword checks a given password against any enabled complexity rules.
-func (s *Service) ValidatePassword(password string) error {
+func (s *Service) ValidatePassword(password string) error { //nolint: cyclop
 	hasNumber := false
 	hasUpper := false
 	hasLower := false

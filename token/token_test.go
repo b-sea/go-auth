@@ -108,34 +108,29 @@ func TestTokenServiceGenerateAccessToken(t *testing.T) {
 	}
 
 	type test struct {
-		sub      string
-		issuer   string
-		audience string
-		result   string
-		err      error
+		sub       string
+		issuer    string
+		audiences []string
+		result    string
+		err       error
 	}
 
 	testCases := map[string]test{
 		"success": {
-			sub:      "user-id",
-			issuer:   "unit-tests",
-			audience: "special-service",
-			result:   "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1bml0LXRlc3RzIiwic3ViIjoidXNlci1pZCIsImF1ZCI6WyJhY2Nlc3MiLCJzcGVjaWFsLXNlcnZpY2UiXSwiZXhwIjoxMjU3ODc3ODAwLCJpYXQiOjEyNTc4NzQyMDAsImp0aSI6IjEyMzQtbXktaWQtNTY3OCJ9.VNDEbYubYKBOspkQCIq76MtuEjfuS2ztUGskix7WfcR-rN8J-WPHnFtMDzsggC9fe9uF0AQyWoLtti45v7n4JSU01vgITtMhMIKANc837eJT3RBcIzI8Qc7_fSKXzO30xiQWAm8acUFu4RsUl4syEgarcHSxI-9qBzoKMYOISv6XIwdSgDKXxJ7Szs3rFYzPhA3ZDMu-JwMmTNKgoQGtX6RfvubPm5QUGHiP9FcHlIyTBXxF2mOk0_tWNGEZVTVy07hSPVz9ni1HQiliMvipTDDaMxsAZNbfAu_enfnhjdl5t-sH77Oio-OXBiF5i_N82_hFqvJ9BPw8fpPwbqlkEA",
+			sub:       "user-id",
+			issuer:    "unit-tests",
+			audiences: []string{"special-service"},
+			result:    "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1bml0LXRlc3RzIiwic3ViIjoidXNlci1pZCIsImF1ZCI6WyJzcGVjaWFsLXNlcnZpY2UiLCJhY2Nlc3MiXSwiZXhwIjoxMjU3ODc3ODAwLCJpYXQiOjEyNTc4NzQyMDAsImp0aSI6IjEyMzQtbXktaWQtNTY3OCJ9.QcqmtVPpeUAZF_YpgHHQI0vrz72M75yBHBRgJQOFmL_EDl1KrGUksbnBRmbn8zrb0X-jZ7fNAZZ7tBFtyBRIuMpFX8OvlhEwAHU0KXCm2NwXujvG6SNZsRf0wKE8M2AyIChqUtTgtM6Pn4H0ChEoRjUKLPf5V4eg_U9TSgYp9Dojg5b0N9XU4S9NAH9JpRAMe1HXxMMkBrB4ETT0-7NT3LanblHdu2-B0f6yGk5BQNTWv-e4B1RH90aDDnYlqaO44psNK1s6W8rA4vg8txL86aBgHLpQVV3bzi8A62c-vuMi85vsyJ2hX1gg4Mk_jMkwPeW0D3Zu51D7etvGQi6WgA",
 		},
 		"no issuer": {
-			sub:      "user-id",
-			audience: "special-service",
-			result:   "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLWlkIiwiYXVkIjpbImFjY2VzcyIsInNwZWNpYWwtc2VydmljZSJdLCJleHAiOjEyNTc4Nzc4MDAsImlhdCI6MTI1Nzg3NDIwMCwianRpIjoiMTIzNC1teS1pZC01Njc4In0.O_2UWotrwh9thG7fvAPFcFVT2mJ6odTWa6nyikmf0PBMAJ85vLS8Gw_tjC075D_F8iKT7IQ6G3JKX8IEQdNIn4akhVjEZh5rOLF1kMFxBfMfBx9ZRsR8MeW5xudvLbUafsRfI2kIoCSvc1X3xe2hB0kF4x16R74L1iUOJdqhVkOOEzx3BYbJvpuX7gbqlQ-dkGNPk1Dk-evdtMD9kuiT8TaoS5anpX7G51mMK8I8zcCOjkW7J46bU9NA9n6XKCNmWKaNA1u91U5f32OYfj7ja8X975mLdM2HgYm-TKjjYvgU9h-vdPpKXXyLMI3GXnsyn-_vhvbCCFr8I6XLuFBeHQ",
-		},
-		"no audience": {
-			sub:    "user-id",
-			issuer: "unit-tests",
-			result: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1bml0LXRlc3RzIiwic3ViIjoidXNlci1pZCIsImF1ZCI6WyJhY2Nlc3MiXSwiZXhwIjoxMjU3ODc3ODAwLCJpYXQiOjEyNTc4NzQyMDAsImp0aSI6IjEyMzQtbXktaWQtNTY3OCJ9.DVURPqPA2Djq9_uZJyhBXS1iG5gaPAq4g2sJRhloRsQEVhYOucem3jhJitbk-zFaXFEXqP6rx067ux8TgxPr74CkjwoaQV4zJSGbFlNY0TZQBbQdhsvlxj4RssyKUdn6qSHWD7O67kyUZBLHmYtpUdrKT0ctAiiBsWmddbapmzUyDng750SFifPzCvRLs2qhDvOQ5Wc--yBL7sttakymwnOyzYISpdWbLcjuJFPhJrtjcqjeYsSnG-VS48Pi0h4GroyvTEpM6nrNuG6Uq3v9NT6qmbVSFi4arRlkmYaXnfbS5K18GNSUENh-srtgdDc2vv7SGFi0RLt-A5H2wpVnVw",
+			sub:       "user-id",
+			audiences: []string{},
+			result:    "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLWlkIiwiYXVkIjpbImFjY2VzcyJdLCJleHAiOjEyNTc4Nzc4MDAsImlhdCI6MTI1Nzg3NDIwMCwianRpIjoiMTIzNC1teS1pZC01Njc4In0.jjpfxE4Uzgc1L-IQ_-OzVnPV6Ew_PWT51rMWCFEmAbFwsZSGQafpaUVzrR6luB-ZeL05lQoEn4fcJucHmM2Q2KFHUAiy5Dm9dSAKaLyorgjVQtEkY_qMEhqsLUXOVFaSPvJsKHirt5I53Xz1t_a-8iTy5eonDEQHs6n4nETOXJCGvnpqcEx3pxV9bi4nMOOAkJ_jg_4A1Ve9r2puOkxRODTB2DOi0gopCIWT4lB7W_fTg8T8P80AWLqOv07Yh5jsV8IdtN_1TbjJgr5b96v_bRTe6n48adLzecDXgHSxVEtFCNc39SWpRfJruN3H1aThu8hJJ5JKzLOyB8JTCqm4Yw",
 		},
 		"no subject": {
-			issuer:   "unit-tests",
-			audience: "special-service",
-			err:      token.ErrJWTClaim,
+			issuer:    "unit-tests",
+			audiences: []string{},
+			err:       token.ErrJWTClaim,
 		},
 	}
 
@@ -146,7 +141,6 @@ func TestTokenServiceGenerateAccessToken(t *testing.T) {
 			[]byte(publicKey),
 			[]byte(privateKey),
 			token.WithIssuer(testCase.issuer),
-			token.WithAudience(testCase.audience),
 			token.WithAccessTimeout(time.Hour),
 			token.WithRefreshTimeout(time.Hour),
 			token.WithIDGenerator(func() string { return "1234-my-id-5678" }),
@@ -158,7 +152,7 @@ func TestTokenServiceGenerateAccessToken(t *testing.T) {
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
 
-			result, err := tokenService.GenerateAccessToken(testCase.sub)
+			result, err := tokenService.GenerateAccessToken(testCase.sub, testCase.audiences...)
 
 			assert.Equal(t, testCase.result, result, "different results")
 			if testCase.err == nil {
@@ -178,34 +172,29 @@ func TestTokenServiceGenerateRefreshToken(t *testing.T) {
 	}
 
 	type test struct {
-		sub      string
-		issuer   string
-		audience string
-		result   string
-		err      error
+		sub       string
+		issuer    string
+		audiences []string
+		result    string
+		err       error
 	}
 
 	testCases := map[string]test{
 		"success": {
-			sub:      "user-id",
-			issuer:   "unit-tests",
-			audience: "special-service",
-			result:   "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1bml0LXRlc3RzIiwic3ViIjoidXNlci1pZCIsImF1ZCI6WyJyZWZyZXNoIiwic3BlY2lhbC1zZXJ2aWNlIl0sImV4cCI6MTI1Nzg3NzgwMCwiaWF0IjoxMjU3ODc0MjAwLCJqdGkiOiIxMjM0LW15LWlkLTU2NzgifQ.u1-UnorN3qO3XUlK6gE7o0bL0mn-cbctP3Vmy9jRNTccks6Qaj4OjGRCF-AxYvLtliqcqFgkA7q9Q2KVSx_cqcjpXiSRZMtsvDAv5O6Evl-VjYYYE81JxfP84OgQ2Ga6BI-b0Coaoq73iOjmLmd-6HxuIiTUZiamGmho8RjVSoEYD0dZqqU5SKtG5AtuEADJB57Y6WM021VTxZsic31JC81aQp0RibMPi4x5-foazS6rStgjeZhk70kWP7LbUsVOw0PxdA8ULJxAp8hMHSqt4H7TaMS6CBEz2sJMbpOJ6KIa1pqznnj_vAHqurqq0vDNJ8Bff-4BIRNMygU9Hn9Lmw",
+			sub:       "user-id",
+			issuer:    "unit-tests",
+			audiences: []string{"special-service"},
+			result:    "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1bml0LXRlc3RzIiwic3ViIjoidXNlci1pZCIsImF1ZCI6WyJzcGVjaWFsLXNlcnZpY2UiLCJyZWZyZXNoIl0sImV4cCI6MTI1Nzg3NzgwMCwiaWF0IjoxMjU3ODc0MjAwLCJqdGkiOiIxMjM0LW15LWlkLTU2NzgifQ.U9Lwsv-ArOuxii9ZwBM419hEukcv72zOLG_jMNMG6h7g5iqQaD4FehYgR645eaejtWT_TXcaZSkSM_MvcyKnYXJtLYERSpgIC8Ew5JvjiFg4GV9t5IQ48xhEnuRHpDv5r67sf5MxS43zvL3Lt1HDfhTiG6eEYhUhn6NfHv_J9c4afS2yUOH3l-RzKGG1h2L22LIsH0QOq1omxuLe8jIwolO1QwqlEUohyH4wRC2lJrZeljzzsbXvsj1PbwvVPuCFMml0mJcJo0z2jtCqr4p0XyvEaVmXzXb9WCvNmpRTarsyuOlI_j6mqRXfsfzKRped1aTBiyOdqV9v2g4yMKxR1w",
 		},
 		"no issuer": {
-			sub:      "user-id",
-			audience: "special-service",
-			result:   "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLWlkIiwiYXVkIjpbInJlZnJlc2giLCJzcGVjaWFsLXNlcnZpY2UiXSwiZXhwIjoxMjU3ODc3ODAwLCJpYXQiOjEyNTc4NzQyMDAsImp0aSI6IjEyMzQtbXktaWQtNTY3OCJ9.LrahHdJJQh8DbfyDHRVf98asSci4n8QtxSrstle7GzAPKin0v_TI8L6hmkdMEbt8sPKMG5uJHZazoLxFulLgU2J3rmVJPkAGVrbyCl4K8q27jZwHkuKxfhEAGMO9yZo50MotxgEu9SJjp7dJv36wiB9DYo4ygSn5Y4XtsQ6hqE_v7f-9ECSZah1ZL4-MOK1PrbyKI4Pa6tkJI88MphqYaOsTNvlogG73BLS23deLxvXs-p0PYxp46MJnj_IUa_U75VdpbGUFtKEDa_dD3hXqbaV7DuUnDh7CZycxHI-u6aZUU0c0W3C2NK92k5E1lyL885glCbySVxOlA2QgNgA_jg",
-		},
-		"no audience": {
-			sub:    "user-id",
-			issuer: "unit-tests",
-			result: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1bml0LXRlc3RzIiwic3ViIjoidXNlci1pZCIsImF1ZCI6WyJyZWZyZXNoIl0sImV4cCI6MTI1Nzg3NzgwMCwiaWF0IjoxMjU3ODc0MjAwLCJqdGkiOiIxMjM0LW15LWlkLTU2NzgifQ.k74fMG-nPD62agG_oFM4etraCIIJbPBj-wg6PvyfWT4oK0ZVnQxH17_96B1nZtiX5WQtiDob-dbSAJVw49w5y7gmixPuaM0wpfZBkw8ZtiQrV5HdGO7tSV5yVIrfbqStXXU-gyd5sBnob3ibuMLw3bFQklOZjMn5-xnwDhTo1aeF08f4F4zzSE-Les1eu0Mp5b-wm3mZxgjeIsECRnmRyFZxbEX8Z40mOz61WYnbQj01qhxfOQ3Ji2iDRGGDU_9ZoL61zOROVxaGiNa_2kCCzBwruyQke0wMLNmZg0OiZb5Wnidxgswg2JJpsX186I9z5ab1uFeMu3XM1FvzCASrkg",
+			sub:       "user-id",
+			audiences: []string{},
+			result:    "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLWlkIiwiYXVkIjpbInJlZnJlc2giXSwiZXhwIjoxMjU3ODc3ODAwLCJpYXQiOjEyNTc4NzQyMDAsImp0aSI6IjEyMzQtbXktaWQtNTY3OCJ9.Tzeyah0AhGJQ2bSS5A7UOSBvazWMJbF_eAr1KjXoWlcV2ux3qa5Xr4cRizj1ld6PyGODfwk-T9b0mMrSkvEs9-5MzdcnJewnMFK11yCI3EVJR-ObRr1hRrEpNr8pOMu-MvLKNMvmIjDcbOlZoYdlZRmpSbq3Gu6jXsy3jElAyrHbvI9YGZ9PtUgL2YoEpkguHE6f7p3oRYu0M7iJUJn30JzX249YeGQm9SH17sRb5Uq83EeCTgNlMhGdf4Nl_JqbGkxgKD-_O9YnQem5thb4RZPEoD26hE62u6jnAG-cOvviFcrfhDO1B_w2o9b9DAVN68xUTRfIKm8di-qKBCCsbg",
 		},
 		"no subject": {
-			issuer:   "unit-tests",
-			audience: "special-service",
-			err:      token.ErrJWTClaim,
+			issuer:    "unit-tests",
+			audiences: []string{},
+			err:       token.ErrJWTClaim,
 		},
 	}
 
@@ -216,7 +205,6 @@ func TestTokenServiceGenerateRefreshToken(t *testing.T) {
 			[]byte(publicKey),
 			[]byte(privateKey),
 			token.WithIssuer(testCase.issuer),
-			token.WithAudience(testCase.audience),
 			token.WithAccessTimeout(time.Hour),
 			token.WithRefreshTimeout(time.Hour),
 			token.WithIDGenerator(func() string { return "1234-my-id-5678" }),
@@ -228,7 +216,7 @@ func TestTokenServiceGenerateRefreshToken(t *testing.T) {
 		t.Run(name, func(s *testing.T) {
 			s.Parallel()
 
-			result, err := tokenService.GenerateRefreshToken(testCase.sub)
+			result, err := tokenService.GenerateRefreshToken(testCase.sub, testCase.audiences...)
 
 			assert.Equal(t, testCase.result, result, "different results")
 			if testCase.err == nil {
@@ -286,7 +274,6 @@ func TestTokenServiceParseAccessToken(t *testing.T) {
 			[]byte(publicKey),
 			[]byte(privateKey),
 			token.WithIssuer("unit-tests"),
-			token.WithAudience("special-service"),
 			token.WithAccessTimeout(time.Hour),
 			token.WithRefreshTimeout(time.Hour),
 			token.WithIDGenerator(func() string { return "1234-my-id-5678" }),
@@ -356,7 +343,6 @@ func TestTokenServiceParseRefreshToken(t *testing.T) {
 			[]byte(publicKey),
 			[]byte(privateKey),
 			token.WithIssuer("unit-tests"),
-			token.WithAudience("special-service"),
 			token.WithAccessTimeout(time.Hour),
 			token.WithRefreshTimeout(time.Hour),
 			token.WithIDGenerator(func() string { return "1234-my-id-5678" }),

@@ -47,13 +47,6 @@ func WithIssuer(iss string) Option {
 	}
 }
 
-// WithAudience sets the token aud claim.
-func WithAudience(aud string) Option {
-	return func(ts *Service) {
-		ts.audience = aud
-	}
-}
-
 // WithAccessTimeout sets the access token timeout.
 // Defaults to 15 minutes.
 func WithAccessTimeout(timeout time.Duration) Option {
@@ -84,7 +77,6 @@ type Service struct {
 	signKey        *rsa.PrivateKey
 	verifyKey      *rsa.PublicKey
 	issuer         string
-	audience       string
 	accessTimeout  time.Duration
 	refreshTimeout time.Duration
 	idGenerator    func() string
@@ -106,7 +98,7 @@ func NewService(publicKey []byte, privateKey []byte, opts ...Option) (*Service, 
 		signMethod:     "RS256",
 		verifyKey:      verifyKey,
 		signKey:        signKey,
-		accessTimeout:  15 * time.Minute, //nolint: gomnd
+		accessTimeout:  15 * time.Minute, //nolint: mnd
 		refreshTimeout: 30 * 24 * time.Hour,
 		idGenerator:    uuid.NewString,
 	}
@@ -119,16 +111,16 @@ func NewService(publicKey []byte, privateKey []byte, opts ...Option) (*Service, 
 }
 
 // ParseAccessToken verifies and transforms a given token string into an access JWT.
-func (s *Service) ParseAccessToken(tokenString string) (*jwt.Token, error) {
-	return s.parseToken(tokenString, accessAud)
+func (s *Service) ParseAccessToken(token string, audience ...string) (*jwt.Token, error) {
+	return s.parseToken(token, accessAud, audience...)
 }
 
 // ParseRefreshToken verifies and transforms a given token string into a refresh JWT.
-func (s *Service) ParseRefreshToken(tokenString string) (*jwt.Token, error) {
-	return s.parseToken(tokenString, refreshAud)
+func (s *Service) ParseRefreshToken(token string, audience ...string) (*jwt.Token, error) {
+	return s.parseToken(token, refreshAud, audience...)
 }
 
-func (s *Service) parseToken(tokenString string, tokenTypAud tokenType) (*jwt.Token, error) {
+func (s *Service) parseToken(tokenString string, tokenTypAud tokenType, audience ...string) (*jwt.Token, error) {
 	var claims jwt.RegisteredClaims
 
 	options := []jwt.ParserOption{
@@ -137,8 +129,8 @@ func (s *Service) parseToken(tokenString string, tokenTypAud tokenType) (*jwt.To
 		jwt.WithValidMethods([]string{s.signMethod}),
 	}
 
-	if s.audience != "" {
-		options = append(options, jwt.WithAudience(s.audience))
+	for _, aud := range audience {
+		options = append(options, jwt.WithAudience(aud))
 	}
 
 	if s.issuer != "" {
@@ -161,16 +153,16 @@ func (s *Service) parseToken(tokenString string, tokenTypAud tokenType) (*jwt.To
 }
 
 // GenerateAccessToken creates and signes a new access JWT.
-func (s *Service) GenerateAccessToken(sub string) (string, error) {
-	return s.generateToken(sub, accessAud)
+func (s *Service) GenerateAccessToken(sub string, audience ...string) (string, error) {
+	return s.generateToken(sub, accessAud, audience...)
 }
 
 // GenerateRefreshToken creates and signes a new refresh JWT.
-func (s *Service) GenerateRefreshToken(sub string) (string, error) {
-	return s.generateToken(sub, refreshAud)
+func (s *Service) GenerateRefreshToken(sub string, audience ...string) (string, error) {
+	return s.generateToken(sub, refreshAud, audience...)
 }
 
-func (s *Service) generateToken(sub string, tokenTypeAud tokenType) (string, error) {
+func (s *Service) generateToken(sub string, tokenTypeAud tokenType, audience ...string) (string, error) {
 	if sub == "" {
 		return "", jwtClaimError("missing sub claim")
 	}
@@ -178,17 +170,13 @@ func (s *Service) generateToken(sub string, tokenTypeAud tokenType) (string, err
 	claims := jwt.RegisteredClaims{
 		ID:        s.idGenerator(),
 		Subject:   sub,
-		Audience:  jwt.ClaimStrings([]string{string(tokenTypeAud)}),
+		Audience:  jwt.ClaimStrings(append(audience, string(tokenTypeAud))),
 		ExpiresAt: jwt.NewNumericDate(Timestamp().Add(s.accessTimeout)),
 		IssuedAt:  jwt.NewNumericDate(Timestamp()),
 	}
 
 	if s.issuer != "" {
 		claims.Issuer = s.issuer
-	}
-
-	if s.audience != "" {
-		claims.Audience = append(claims.Audience, s.audience)
 	}
 
 	token := jwt.NewWithClaims(

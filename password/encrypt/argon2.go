@@ -73,11 +73,11 @@ type Argon2Repo struct {
 func NewArgon2Repo(opts ...Argon2Option) *Argon2Repo {
 	repo := &Argon2Repo{
 		params: Argon2Params{
-			Memory:     12, //nolint: gomnd
+			Memory:     12, //nolint: mnd
 			Passes:     1,
-			Threads:    3,  //nolint: gomnd
-			SaltLength: 16, //nolint: gomnd
-			KeyLength:  32, //nolint: gomnd
+			Threads:    3,  //nolint: mnd
+			SaltLength: 16, //nolint: mnd
+			KeyLength:  32, //nolint: mnd
 		},
 		salt:   generateRandomBytes,
 		pepper: "",
@@ -167,14 +167,14 @@ func (r *Argon2Repo) decodeHash(encodedHash string) (*Argon2Params, []byte, []by
 		return nil, nil, nil, decodeHashError(err)
 	}
 
-	params.SaltLength = uint32(len(salt))
+	params.SaltLength = uint32(len(salt)) //nolint: gosec
 
 	hash, err := base64.RawStdEncoding.Strict().DecodeString(values[5])
 	if err != nil {
 		return nil, nil, nil, decodeHashError(err)
 	}
 
-	params.KeyLength = uint32(len(hash))
+	params.KeyLength = uint32(len(hash)) //nolint: gosec
 
 	return params, salt, hash, nil
 }
