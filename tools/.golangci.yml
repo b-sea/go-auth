@@ -1,48 +1,64 @@
+# See https://golangci-lint.run/usage/linters for details
+---
+run:
+  tests: false
+
 issues:
-  max-per-linter: 0
-  max-same-issues: 0
+  max-issues-per-linter: 0  # Maximum issues count per one linter. Set to 0 to disable (default 50)
+  max-per-linter: 0  # Maximum issues count per one linter. Set to 0 to disable (default 50)
+  max-same-issues: 0  # Maximum count of issues with the same text. Set to 0 to disable (default 3)
+
   exclude-use-default: false
+
+  exclude-rules:
+    # Mocks
+    - path: internal/mock/.*\.go
+      linters:
+        - mnd
+        - errname
+        - wrapcheck
+        - stylecheck
+        - revive
+        - ireturn
+    # Domain errors are all custom, so don't check for those
+    - path: internal/shopping/.*\.go
+      linters:
+        - err113
 
 linters:
   enable-all: true
   disable:
-    - varcheck
-    - nosnakecase
-    - golint
-    - maligned
-    - structcheck
-    - scopelint
-    - deadcode
-    - ifshort
-    - exhaustivestruct
-    - interfacer
     - exhaustruct
-    - depguard
-    - testifylint
-    - godox
     - nlreturn
-    - musttag
-    - dupl
+    - rowserrcheck
+    - sqlclosecheck
+    - wastedassign
+    - depguard
+    - tagalign
+    - exportloopref
+    - govet
+    - gomnd
+    - execinquery
 
 linters-settings:
   cyclop:
-    max-complexity: 18
+    # The maximum code complexity to report
+    max-complexity: 16
+    # The maximum average package complexity
     package-average: 10.0
+
+  varnamelen:
+    ignore-names:
+      - ok
+      - id
+      - i
+      - db
+      - tx
 
   tagliatelle:
     case:
       use-field-name: true
       rules:
+        # any struct tag type can be used.
+        # support string case: `camel`, `pascal`, `kebab`, `snake`, `goCamel`, `goPascal`, `goKebab`, `goSnake`, `upper`, `lower`
         json: camel
-        yaml: camel
-        mapstructure: camel
-
-  varnamelen:
-    ignore-type-assert-ok: true
-    ignore-map-ok: true
-    ignore-chan-recv-ok: true
-    ignore-names:
-      - id
-
-run: 
-  tests: false
