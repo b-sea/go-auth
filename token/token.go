@@ -1,190 +1,65 @@
-// Package token is responsible for managing tokens.
+// Package token defines auth token management.
 package token
 
 import (
-	"crypto/rsa"
-	"errors"
-	"fmt"
-	"time"
-
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	"slices"
+	"strings"
 )
 
-type tokenType string
+// Accessor defines functions required for access token management.
+type Accessor interface {
+	// NewAccessToken creates a new access token for the given claims.
+	NewAccessToken(claims AccessClaims) Payload
 
-const (
-	accessAud  tokenType = "access"
-	refreshAud tokenType = "refresh"
-)
-
-var (
-	// Timestamp is a function to generate a timestamp value.
-	Timestamp = time.Now //nolint: gochecknoglobals
-
-	// ErrRSAKey is raised when RSA keys encounter an error.
-	ErrRSAKey = errors.New("rsa key error")
-
-	// ErrJWTClaim is raised when a JWT claim is incorrect.
-	ErrJWTClaim = errors.New("jwt claims error")
-)
-
-func rsaKeyError(value interface{}) error {
-	return fmt.Errorf("%w: %v", ErrRSAKey, value)
+	// ParseAccessClaims parses, validates, and verifies the given access token and returns the claims.
+	ParseAccessClaims(accessToken string) (AccessClaims, error)
 }
 
-func jwtClaimError(value interface{}) error {
-	return fmt.Errorf("%w: %v", ErrJWTClaim, value)
+// AccessClaims are standardized data found in access tokens.
+type AccessClaims struct {
+	subject string
+	scopes  []string
 }
 
-// Option is a token service creation option.
-type Option func(*Service)
-
-// WithIssuer sets the token iss claim.
-func WithIssuer(iss string) Option {
-	return func(ts *Service) {
-		ts.issuer = iss
+// NewAccessClaims creates new access claims.
+func NewAccessClaims(subject string, scopes []string) AccessClaims {
+	return AccessClaims{
+		subject: subject,
+		scopes:  scopes,
 	}
 }
 
-// WithAccessTimeout sets the access token timeout.
-// Defaults to 15 minutes.
-func WithAccessTimeout(timeout time.Duration) Option {
-	return func(ts *Service) {
-		ts.accessTimeout = timeout
-	}
+// Subject returns the subject claim.
+func (c AccessClaims) Subject() string {
+	return c.subject
 }
 
-// WithRefreshTimeout sets the refresh token timeout.
-// Defaults to 30 days.
-func WithRefreshTimeout(timeout time.Duration) Option {
-	return func(ts *Service) {
-		ts.refreshTimeout = timeout
-	}
+// Scopes returns the subject claim.
+func (c AccessClaims) Scopes() []string {
+	return c.scopes
 }
 
-// WithIDGenerator sets the function to set token ids.
-// Defaults to uuid.NewString.
-func WithIDGenerator(generator func() string) Option {
-	return func(ts *Service) {
-		ts.idGenerator = generator
-	}
-}
-
-// Service implements a standard JWT auth service.
-type Service struct {
-	signMethod     string
-	signKey        *rsa.PrivateKey
-	verifyKey      *rsa.PublicKey
-	issuer         string
-	accessTimeout  time.Duration
-	refreshTimeout time.Duration
-	idGenerator    func() string
-}
-
-// NewService creates a new Service.
-func NewService(publicKey []byte, privateKey []byte, opts ...Option) (*Service, error) {
-	verifyKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKey)
-	if err != nil {
-		return nil, rsaKeyError(err)
-	}
-
-	signKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKey)
-	if err != nil {
-		return nil, rsaKeyError(err)
-	}
-
-	service := &Service{
-		signMethod:     "RS256",
-		verifyKey:      verifyKey,
-		signKey:        signKey,
-		accessTimeout:  15 * time.Minute, //nolint: mnd
-		refreshTimeout: 30 * 24 * time.Hour,
-		idGenerator:    uuid.NewString,
-	}
-
-	for _, opt := range opts {
-		opt(service)
-	}
-
-	return service, nil
-}
-
-// ParseAccessToken verifies and transforms a given token string into an access JWT.
-func (s *Service) ParseAccessToken(token string, audience ...string) (*jwt.Token, error) {
-	return s.parseToken(token, accessAud, audience...)
-}
-
-// ParseRefreshToken verifies and transforms a given token string into a refresh JWT.
-func (s *Service) ParseRefreshToken(token string, audience ...string) (*jwt.Token, error) {
-	return s.parseToken(token, refreshAud, audience...)
-}
-
-func (s *Service) parseToken(tokenString string, tokenTypAud tokenType, audience ...string) (*jwt.Token, error) {
-	var claims jwt.RegisteredClaims
-
-	options := []jwt.ParserOption{
-		jwt.WithAudience(string(tokenTypAud)),
-		jwt.WithIssuedAt(),
-		jwt.WithValidMethods([]string{s.signMethod}),
-	}
-
-	for _, aud := range audience {
-		options = append(options, jwt.WithAudience(aud))
-	}
-
-	if s.issuer != "" {
-		options = append(options, jwt.WithIssuer(s.issuer))
-	}
-
-	token, err := jwt.ParseWithClaims(
-		tokenString,
-		&claims,
-		func(*jwt.Token) (interface{}, error) {
-			return s.verifyKey, nil
+// HasScope checks if the claims are authorized for the given scope.
+func (c AccessClaims) HasScope(scope string) bool {
+	return slices.ContainsFunc(
+		c.scopes,
+		func(s string) bool {
+			return strings.EqualFold(scope, s)
 		},
-		options...,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("%w", err)
-	}
-
-	return token, nil
 }
 
-// GenerateAccessToken creates and signes a new access JWT.
-func (s *Service) GenerateAccessToken(sub string, audience ...string) (string, error) {
-	return s.generateToken(sub, accessAud, audience...)
+// Refresher defines functions required for refresh token management.
+type Refresher interface {
+	// NewRefreshToken creates a new refresh token for the given subject.
+	NewRefreshToken(subject string) Payload
+
+	// ParseRefreshSubject parses, validates, and verifies the given refresh token and returns the subject.
+	ParseRefreshSubject(refreshToken string) (string, error)
 }
 
-// GenerateRefreshToken creates and signes a new refresh JWT.
-func (s *Service) GenerateRefreshToken(sub string, audience ...string) (string, error) {
-	return s.generateToken(sub, refreshAud, audience...)
-}
-
-func (s *Service) generateToken(sub string, tokenTypeAud tokenType, audience ...string) (string, error) {
-	if sub == "" {
-		return "", jwtClaimError("missing sub claim")
-	}
-
-	claims := jwt.RegisteredClaims{
-		ID:        s.idGenerator(),
-		Subject:   sub,
-		Audience:  jwt.ClaimStrings(append(audience, string(tokenTypeAud))),
-		ExpiresAt: jwt.NewNumericDate(Timestamp().Add(s.accessTimeout)),
-		IssuedAt:  jwt.NewNumericDate(Timestamp()),
-	}
-
-	if s.issuer != "" {
-		claims.Issuer = s.issuer
-	}
-
-	token := jwt.NewWithClaims(
-		jwt.GetSigningMethod(s.signMethod),
-		&claims,
-	)
-
-	signed, _ := token.SignedString(s.signKey)
-
-	return signed, nil
+// Payload is generated token data.
+type Payload struct {
+	Token     string `json:"token"`
+	ExpiresIn int    `json:"expiresIn"`
 }

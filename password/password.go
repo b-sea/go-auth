@@ -3,10 +3,7 @@ package password
 
 import (
 	"fmt"
-	"strings"
 	"unicode"
-
-	"github.com/b-sea/go-auth/password/encrypt"
 )
 
 const (
@@ -14,80 +11,43 @@ const (
 	maxLength = 255
 )
 
-// InvalidError is raised when a password does not pass validation.
-type InvalidError struct {
-	Issues []string `json:"issues"`
+// Encrypter defines all functions required for encrypting data.
+type Encrypter interface {
+	// Hash an input string.
+	Hash(input string) (string, error)
+
+	// Compare an input string with an hashed string.
+	Compare(input string, hash string) (bool, error)
 }
 
-func (e InvalidError) Error() string {
-	return "invalid password: " + strings.Join(e.Issues, ", ")
-}
-
-// Option is a password service creation option.
-type Option func(*Service)
-
-// WithMaxLength sets the maximum password length.
-// Defaults to 255.
-func WithMaxLength(length int) Option {
-	return func(ps *Service) {
-		ps.maxLength = length
-	}
-}
-
-// WithMinLength sets the minimum password length.
-// Defaults to 10.
-func WithMinLength(length int) Option {
-	return func(ps *Service) {
-		ps.minLength = length
-	}
-}
-
-// WithUpper requires an upper case character in the password.
-func WithUpper(require bool) Option {
-	return func(ps *Service) {
-		ps.requireUpper = require
-	}
-}
-
-// WithLower requires a lower case character in the password.
-func WithLower(require bool) Option {
-	return func(ps *Service) {
-		ps.requireLower = require
-	}
-}
-
-// WithSpecial requires a special character in the password.
-func WithSpecial(require bool) Option {
-	return func(ps *Service) {
-		ps.requireSpecial = require
-	}
-}
-
-// WithNumber requires a number character in the password.
-func WithNumber(require bool) Option {
-	return func(ps *Service) {
-		ps.requireNumber = require
-	}
+// Complexity controls the required characters in a password.
+type Complexity struct {
+	RequireUpper   bool
+	RequireLower   bool
+	RequireNumber  bool
+	RequireSpecial bool
 }
 
 // Service implements a standard password managing service.
 type Service struct {
-	repo encrypt.Repository
-
-	minLength      int
-	maxLength      int
-	requireUpper   bool
-	requireLower   bool
-	requireNumber  bool
-	requireSpecial bool
+	encrypt    Encrypter
+	minLength  int
+	maxLength  int
+	complexity Complexity
 }
 
-// NewService creates a new Service.
-func NewService(repo encrypt.Repository, opts ...Option) *Service {
+// NewService creates a new password service.
+func NewService(encrypt Encrypter, opts ...Option) *Service {
 	service := &Service{
-		repo:      repo,
-		minLength: 0,
+		encrypt:   encrypt,
+		minLength: minLength,
 		maxLength: maxLength,
+		complexity: Complexity{
+			RequireUpper:   false,
+			RequireLower:   false,
+			RequireNumber:  false,
+			RequireSpecial: false,
+		},
 	}
 
 	for _, opt := range opts {
@@ -97,8 +57,8 @@ func NewService(repo encrypt.Repository, opts ...Option) *Service {
 	return service
 }
 
-// ValidatePassword checks a given password against any enabled complexity rules.
-func (s *Service) ValidatePassword(password string) error { //nolint: cyclop
+// Validate checks a given password against any enabled complexity rules.
+func (s *Service) Validate(password string) error { //nolint: cyclop
 	hasNumber := false
 	hasUpper := false
 	hasLower := false
@@ -123,34 +83,34 @@ func (s *Service) ValidatePassword(password string) error { //nolint: cyclop
 		issues = append(issues, fmt.Sprintf("password must be at least %d characters", s.minLength))
 	}
 
-	if s.requireUpper && !hasUpper {
+	if s.complexity.RequireUpper && !hasUpper {
 		issues = append(issues, "at least one uppercase character required")
 	}
 
-	if s.requireLower && !hasLower {
+	if s.complexity.RequireLower && !hasLower {
 		issues = append(issues, "at least one lowercase character required")
 	}
 
-	if s.requireNumber && !hasNumber {
+	if s.complexity.RequireNumber && !hasNumber {
 		issues = append(issues, "at least one numeric character required")
 	}
 
-	if s.requireSpecial && !hasSpecial {
+	if s.complexity.RequireSpecial && !hasSpecial {
 		issues = append(issues, "at least one special character required")
 	}
 
 	if len(issues) > 0 {
-		return InvalidError{
-			Issues: issues,
+		return ValidationError{
+			Reasons: issues,
 		}
 	}
 
 	return nil
 }
 
-// Verify compares a password to a hashed password.
-func (s *Service) Verify(password string, passwordHash string) (bool, error) {
-	result, err := s.repo.Verify(password, passwordHash)
+// Compare a password to a hashed password.
+func (s *Service) Compare(password string, passwordHash string) (bool, error) {
+	result, err := s.encrypt.Compare(password, passwordHash)
 	if err != nil {
 		return false, fmt.Errorf("%w", err)
 	}
@@ -158,14 +118,14 @@ func (s *Service) Verify(password string, passwordHash string) (bool, error) {
 	return result, nil
 }
 
-// GenerateHash encrypts the given password.
-func (s *Service) GenerateHash(password string) (string, error) {
+// Hash the given password.
+func (s *Service) Hash(password string) (string, error) {
 	runes := []rune(password)
 	if len(runes) > s.maxLength {
 		password = string(runes[:s.maxLength])
 	}
 
-	result, err := s.repo.Generate(password)
+	result, err := s.encrypt.Hash(password)
 	if err != nil {
 		return "", fmt.Errorf("%w", err)
 	}
