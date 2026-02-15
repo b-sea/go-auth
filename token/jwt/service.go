@@ -14,7 +14,7 @@ import (
 
 const (
 	defaultTimeout        = 15 * time.Minute
-	defaultLeeway         = time.Minute
+	defaultLeeway         = 30 * time.Second
 	tokenAccessTypeClaim  = "ACCESS"
 	tokenRefreshTypeClaim = "REFRESH"
 )

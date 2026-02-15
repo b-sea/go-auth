@@ -14,8 +14,8 @@ type RS256 struct {
 	privateKey *rsa.PrivateKey
 }
 
-// New creates a new RS256 JWT signer.
-func New(publicKey []byte, privateKey []byte) (*RS256, error) {
+// NewRS256 creates a new RS256 JWT signer.
+func NewRS256(publicKey []byte, privateKey []byte) (*RS256, error) {
 	public, err := jwt.ParseRSAPublicKeyFromPEM(publicKey)
 	if err != nil {
 		return nil, rsaKeyError(err)
