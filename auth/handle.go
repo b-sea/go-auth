@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/b-sea/go-auth/token"
 	"github.com/gorilla/mux"
@@ -120,15 +119,13 @@ type tokens struct {
 	Type         string `json:"type"`
 }
 
-func tokenHandle( //nolint: funlen
+func tokenHandle(
 	authN Authenticator,
 	authZ token.Authorizer,
 	access token.Accessor,
 	refresh token.Refresher,
 ) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		start := time.Now()
-
 		hijack := &authWriter{
 			header: make(http.Header),
 		}
@@ -173,11 +170,6 @@ func tokenHandle( //nolint: funlen
 			refreshToken = refresh.NewRefreshToken(subject).Token
 		}
 
-		zerolog.Ctx(request.Context()).Info().
-			Dur("duration_ms", time.Since(start)).
-			Str("subject", subject).
-			Msg("authenticated")
-
 		writer.Header().Add("Content-Type", "application/json")
 		_ = json.NewEncoder(writer).Encode(
 			tokens{
@@ -192,8 +184,6 @@ func tokenHandle( //nolint: funlen
 
 func refreshHandle(authZ token.Authorizer, access token.Accessor, refresh token.Refresher) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		start := time.Now()
-
 		found, ok := strings.CutPrefix(request.Header.Get(authHeader), tokenType+" ")
 		if !ok {
 			writeUnauthorized(writer, tokenType)
@@ -220,11 +210,6 @@ func refreshHandle(authZ token.Authorizer, access token.Accessor, refresh token.
 		}
 
 		accessPayload := access.NewAccessToken(claims)
-
-		zerolog.Ctx(request.Context()).Info().
-			Dur("duration_ms", time.Since(start)).
-			Str("subject", subject).
-			Msg("authenticated")
 
 		writer.Header().Add("Content-Type", "application/json")
 		_ = json.NewEncoder(writer).Encode(
