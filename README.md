@@ -1,6 +1,6 @@
 # Go-Auth
 
-Simple package to help with token authentication and password verification/validation/hashing.
+A package to help with authentication, authorization, token management, and password verification/validation/hashing.
 
 ## Install
 

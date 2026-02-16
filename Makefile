@@ -1,26 +1,32 @@
-.PHONY: api assets build cmd configs deployments docs examples githooks init interna pkg scripts test third_party tools web website
+GOLANGCILINT_VERSION=v2.6.1
+GOLANGCILINT_ROOT=$$(go env GOPATH)/golangci-lint
+GOLANGCILINT_PATH=${GOLANGCILINT_ROOT}/${GOLANGCILINT_VERSION}
 
-init:
-ifneq (, $(wildcard ./go.mod))
-	$(error "Cannot make init, go.mod already exists")
-endif
-	@go mod init $$(git remote get-url origin | sed -e 's/.*:\/\/\(.*\)$$/\1/' -e 's/\.git$$//')
-	@touch .env
-	@touch go.sum
-	@printf "// Main package is the entrypoint for the program\npackage main\n\nfunc main() {}\n" > cmd/main.go
-	@printf "package main_test\n" > cmd/main_test.go
+.PHONY: tidy test setup-coverage coverage setup-lint lint gqlgen clean
 
-setup:
+tidy:
 	go mod tidy
 
-cert:
-	@mkdir -p ./.cert
-	@openssl genrsa -out ./.cert/id_rsa 4096
-	@openssl rsa -in ./.cert/id_rsa -pubout -out ./.cert/id_rsa.pub
-
 test:
-	@mkdir -p .test
-	@go test -coverprofile=./.test/coverage.out ./...
+	go test -race ./... -coverprofile=./tools/cover.out -covermode=atomic ./...
 
-lint:
-	@golangci-lint run -c tools/.golangci.yml
+setup-coverage:
+	go install github.com/vladopajic/go-test-coverage/v2@latest
+
+coverage: setup-coverage test
+	$$(go env GOPATH)/bin/go-test-coverage --config=./tools/.testcoverage.yml
+
+setup-lint:
+	@mkdir -p ${GOLANGCILINT_ROOT}
+	@mkdir -p ${GOLANGCILINT_PATH}
+	@if [ -z "$$(ls -A "${GOLANGCILINT_PATH}")" ]; then \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "${GOLANGCILINT_PATH}" "${GOLANGCILINT_VERSION}"; \
+	fi
+
+lint: setup-lint
+	@${GOLANGCILINT_PATH}/golangci-lint cache clean
+	@${GOLANGCILINT_PATH}/golangci-lint run -c tools/.golangci.yml
+
+
+gqlgen:
+	@go run github.com/99designs/gqlgen generate --config tools/gqlgen.yml
