@@ -6,6 +6,18 @@ import (
 	"strings"
 )
 
+// Authenticator defines functions required for authN.
+type Authenticator interface {
+	// Authenticate an input and return the authenticated subject.
+	Authenticate(input any) (string, error)
+}
+
+// Authorizer defines functions required for authZ.
+type Authorizer interface {
+	// AccessClaims returns the authorization claims for the given subject.
+	AccessClaims(subject string) (AccessClaims, error)
+}
+
 // Accessor defines functions required for access token management.
 type Accessor interface {
 	// NewAccessToken creates a new access token for the given claims.
