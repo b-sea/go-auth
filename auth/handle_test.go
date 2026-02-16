@@ -193,7 +193,7 @@ func TestTokenHandle(t *testing.T) {
 				EndpointResult: "mock",
 				AuthRequestWriterResult: func(w http.ResponseWriter) {
 					w.Header().Add("Content-Type", "application/json")
-					w.Write([]byte("\"bad input\"\n"))
+					_, _ = w.Write([]byte("\"bad input\"\n"))
 					w.WriteHeader(http.StatusBadRequest)
 				},
 			},
