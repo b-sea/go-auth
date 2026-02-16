@@ -12,6 +12,7 @@ import (
 	"github.com/b-sea/go-auth/auth"
 	"github.com/b-sea/go-auth/token"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -130,6 +131,7 @@ func TestMiddleware(t *testing.T) {
 			router := mux.NewRouter()
 
 			auth.Handle(
+				zerolog.New(zerolog.Nop()),
 				router,
 				&Authenticator{
 					EndpointResult: "mock",
@@ -212,7 +214,7 @@ func TestTokenHandle(t *testing.T) {
 			t.Parallel()
 
 			router := mux.NewRouter()
-			auth.Handle(router, test.authN, test.access)
+			auth.Handle(zerolog.New(zerolog.Nop()), router, test.authN, test.access)
 
 			request, _ := http.NewRequest(
 				http.MethodPost,
@@ -268,6 +270,7 @@ func TestRefreshHandle(t *testing.T) {
 
 			router := mux.NewRouter()
 			auth.Handle(
+				zerolog.New(zerolog.Nop()),
 				router,
 				&Authenticator{},
 				test.access,

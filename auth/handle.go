@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/b-sea/go-auth/token"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 )
 
 type contextKey string
@@ -29,6 +31,7 @@ type Authenticator interface {
 }
 
 type handleConfig struct {
+	log     zerolog.Logger
 	authNs  []Authenticator
 	authZ   token.Authorizer
 	access  token.Accessor
@@ -36,8 +39,9 @@ type handleConfig struct {
 }
 
 // Handle builds auth handlers on the given router.
-func Handle(router *mux.Router, authN Authenticator, access token.Accessor, options ...Option) {
+func Handle(log zerolog.Logger, router *mux.Router, authN Authenticator, access token.Accessor, options ...Option) {
 	cfg := &handleConfig{
+		log:     log,
 		authNs:  []Authenticator{authN},
 		authZ:   nil,
 		access:  access,
@@ -49,13 +53,17 @@ func Handle(router *mux.Router, authN Authenticator, access token.Accessor, opti
 	}
 
 	for _, authN := range cfg.authNs {
+		endpoint := fmt.Sprintf("/auth/%s/token", authN.Endpoint())
+
+		cfg.log.Debug().Str("method", http.MethodPost).Str("path", endpoint).Msg("register")
 		router.Handle(
-			fmt.Sprintf("/auth/%s/token", authN.Endpoint()),
+			endpoint,
 			tokenHandle(authN, cfg.authZ, cfg.access, cfg.refresh),
 		).Methods(http.MethodPost)
 	}
 
 	if cfg.refresh != nil {
+		cfg.log.Debug().Str("method", http.MethodPost).Str("path", "/auth/refresh").Msg("register")
 		router.Handle("/auth/refresh", refreshHandle(cfg.authZ, cfg.access, cfg.refresh)).Methods(http.MethodPost)
 	}
 }
@@ -73,11 +81,13 @@ func Middleware(access token.Accessor) mux.MiddlewareFunc {
 
 			claims, err := access.ParseAccessClaims(found)
 			if err != nil {
+				zerolog.Ctx(request.Context()).Info().Err(err).Msg("invalid token")
 				writeUnauthorized(writer, tokenType)
 
 				return
 			}
 
+			zerolog.Ctx(request.Context()).Info().Str("subject", claims.Subject()).Msg("token validated")
 			next.ServeHTTP(writer, request.WithContext(ToContext(request.Context(), claims)))
 		})
 	}
@@ -110,13 +120,15 @@ type tokens struct {
 	Type         string `json:"type"`
 }
 
-func tokenHandle(
+func tokenHandle( //nolint: funlen
 	authN Authenticator,
 	authZ token.Authorizer,
 	access token.Accessor,
 	refresh token.Refresher,
 ) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		start := time.Now()
+
 		hijack := &authWriter{
 			header: make(http.Header),
 		}
@@ -161,6 +173,11 @@ func tokenHandle(
 			refreshToken = refresh.NewRefreshToken(subject).Token
 		}
 
+		zerolog.Ctx(request.Context()).Info().
+			Dur("duration_ms", time.Since(start)).
+			Str("subject", subject).
+			Msg("authenticated")
+
 		writer.Header().Add("Content-Type", "application/json")
 		_ = json.NewEncoder(writer).Encode(
 			tokens{
@@ -175,6 +192,8 @@ func tokenHandle(
 
 func refreshHandle(authZ token.Authorizer, access token.Accessor, refresh token.Refresher) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		start := time.Now()
+
 		found, ok := strings.CutPrefix(request.Header.Get(authHeader), tokenType+" ")
 		if !ok {
 			writeUnauthorized(writer, tokenType)
@@ -201,6 +220,11 @@ func refreshHandle(authZ token.Authorizer, access token.Accessor, refresh token.
 		}
 
 		accessPayload := access.NewAccessToken(claims)
+
+		zerolog.Ctx(request.Context()).Info().
+			Dur("duration_ms", time.Since(start)).
+			Str("subject", subject).
+			Msg("authenticated")
 
 		writer.Header().Add("Content-Type", "application/json")
 		_ = json.NewEncoder(writer).Encode(

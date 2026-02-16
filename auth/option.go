@@ -10,6 +10,7 @@ type Option func(c *handleConfig)
 // WithAuthZ will enable access management on auth handlers.
 func WithAuthZ(authZ token.Authorizer) Option {
 	return func(c *handleConfig) {
+		c.log.Debug().Msg("authorization enabled")
 		c.authZ = authZ
 	}
 }
