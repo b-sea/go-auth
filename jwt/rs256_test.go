@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/b-sea/go-auth/token/jwt"
+	"github.com/b-sea/go-auth/jwt"
 	"github.com/stretchr/testify/assert"
 )
 

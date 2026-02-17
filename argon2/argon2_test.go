@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/b-sea/go-auth/password/argon2"
+	"github.com/b-sea/go-auth/argon2"
 	"github.com/stretchr/testify/assert"
 )
 

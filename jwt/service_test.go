@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/b-sea/go-auth/jwt"
 	"github.com/b-sea/go-auth/token"
-	"github.com/b-sea/go-auth/token/jwt"
 	"github.com/stretchr/testify/assert"
 )
 
