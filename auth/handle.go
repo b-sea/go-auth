@@ -30,7 +30,6 @@ type Authenticator interface {
 }
 
 type handleConfig struct {
-	log     zerolog.Logger
 	authNs  []Authenticator
 	authZ   token.Authorizer
 	access  token.Accessor
@@ -38,9 +37,8 @@ type handleConfig struct {
 }
 
 // Handle builds auth handlers on the given router.
-func Handle(log zerolog.Logger, router *mux.Router, authN Authenticator, access token.Accessor, options ...Option) {
+func Handle(ctx context.Context, router *mux.Router, authN Authenticator, access token.Accessor, options ...Option) {
 	cfg := &handleConfig{
-		log:     log,
 		authNs:  []Authenticator{authN},
 		authZ:   nil,
 		access:  access,
@@ -48,13 +46,13 @@ func Handle(log zerolog.Logger, router *mux.Router, authN Authenticator, access 
 	}
 
 	for _, option := range options {
-		option(cfg)
+		option(ctx, cfg)
 	}
 
 	for _, authN := range cfg.authNs {
 		endpoint := fmt.Sprintf("/auth/%s/token", authN.Endpoint())
 
-		cfg.log.Debug().Str("method", http.MethodPost).Str("path", endpoint).Msg("register")
+		zerolog.Ctx(ctx).Debug().Str("method", http.MethodPost).Str("path", endpoint).Msg("register")
 		router.Handle(
 			endpoint,
 			tokenHandle(authN, cfg.authZ, cfg.access, cfg.refresh),
@@ -62,7 +60,7 @@ func Handle(log zerolog.Logger, router *mux.Router, authN Authenticator, access 
 	}
 
 	if cfg.refresh != nil {
-		cfg.log.Debug().Str("method", http.MethodPost).Str("path", "/auth/refresh").Msg("register")
+		zerolog.Ctx(ctx).Debug().Str("method", http.MethodPost).Str("path", "/auth/refresh").Msg("register")
 		router.Handle("/auth/refresh", refreshHandle(cfg.authZ, cfg.access, cfg.refresh)).Methods(http.MethodPost)
 	}
 }

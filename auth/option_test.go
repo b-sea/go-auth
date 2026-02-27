@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"github.com/b-sea/go-auth/auth"
 	"github.com/b-sea/go-auth/token"
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,7 +53,7 @@ func TestWithAuthZ(t *testing.T) {
 
 			router := mux.NewRouter()
 			auth.Handle(
-				zerolog.New(zerolog.Nop()),
+				context.Background(),
 				router,
 				authN,
 				&Accessor{
@@ -109,7 +109,7 @@ func TestWithRefreshToken(t *testing.T) {
 
 			router := mux.NewRouter()
 			auth.Handle(
-				zerolog.New(zerolog.Nop()),
+				context.Background(),
 				router,
 				authN,
 				&Accessor{
@@ -152,7 +152,7 @@ func TestWithAddlAuthN(t *testing.T) {
 
 	router := mux.NewRouter()
 	auth.Handle(
-		zerolog.New(zerolog.Nop()),
+		context.Background(),
 		router,
 		authN1,
 		&Accessor{
