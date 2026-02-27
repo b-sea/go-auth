@@ -14,20 +14,21 @@ type Option func(ctx context.Context, cfg *handleConfig)
 func WithAuthZ(authZ token.Authorizer) Option {
 	return func(ctx context.Context, cfg *handleConfig) {
 		zerolog.Ctx(ctx).Debug().Msg("authorization enabled")
+
 		cfg.authZ = authZ
 	}
 }
 
 // WithRefreshToken will enable refresh tokens on auth handlers.
 func WithRefreshToken(refresh token.Refresher) Option {
-	return func(ctx context.Context, cfg *handleConfig) {
+	return func(_ context.Context, cfg *handleConfig) {
 		cfg.refresh = refresh
 	}
 }
 
 // WithAddlAuthN adds an additional authenticator and associated handlers.
 func WithAddlAuthN(authN Authenticator) Option {
-	return func(ctx context.Context, cfg *handleConfig) {
+	return func(_ context.Context, cfg *handleConfig) {
 		cfg.authNs = append(cfg.authNs, authN)
 	}
 }
