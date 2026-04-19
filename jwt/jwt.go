@@ -26,10 +26,7 @@ type Signer interface {
 	VerifyKey() any
 }
 
-var (
-	_ token.Accessor  = (*Service)(nil)
-	_ token.Refresher = (*Service)(nil)
-)
+var _ token.AccessorRefresher = (*Service)(nil)
 
 // Service is a JWT service.
 type Service struct {

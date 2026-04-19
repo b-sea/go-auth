@@ -70,6 +70,12 @@ type Refresher interface {
 	ParseRefreshSubject(refreshToken string) (string, error)
 }
 
+// AccessorRefresher defines functions for access and refresh token management.
+type AccessorRefresher interface {
+	Accessor
+	Refresher
+}
+
 // Payload is generated token data.
 type Payload struct {
 	Token     string `json:"token"`
