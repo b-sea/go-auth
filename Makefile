@@ -26,7 +26,3 @@ setup-lint:
 lint: setup-lint
 	@${GOLANGCILINT_PATH}/golangci-lint cache clean
 	@${GOLANGCILINT_PATH}/golangci-lint run -c tools/.golangci.yml
-
-
-gqlgen:
-	@go run github.com/99designs/gqlgen generate --config tools/gqlgen.yml
