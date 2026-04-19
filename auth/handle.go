@@ -50,7 +50,7 @@ func Handle(ctx context.Context, router *mux.Router, authN Authenticator, access
 	}
 
 	for _, authN := range cfg.authNs {
-		endpoint := fmt.Sprintf("/auth/%s/token", authN.Endpoint())
+		endpoint := fmt.Sprintf("/auth/%s/tokens", authN.Endpoint())
 
 		zerolog.Ctx(ctx).Debug().Str("method", http.MethodPost).Str("path", endpoint).Msg("register")
 		router.Handle(

@@ -217,7 +217,7 @@ func TestTokenHandle(t *testing.T) {
 
 			request, _ := http.NewRequest(
 				http.MethodPost,
-				fmt.Sprintf("/auth/%s/token", test.authN.Endpoint()),
+				fmt.Sprintf("/auth/%s/tokens", test.authN.Endpoint()),
 				bytes.NewBuffer(test.body),
 			)
 			recorder := httptest.NewRecorder()
