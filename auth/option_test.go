@@ -65,7 +65,7 @@ func TestWithAuthZ(t *testing.T) {
 
 			request, _ := http.NewRequest(
 				http.MethodPost,
-				fmt.Sprintf("/auth/%s/token", authN.Endpoint()),
+				fmt.Sprintf("/auth/%s/tokens", authN.Endpoint()),
 				bytes.NewBuffer(test.body),
 			)
 			recorder := httptest.NewRecorder()
@@ -120,7 +120,7 @@ func TestWithRefreshToken(t *testing.T) {
 
 			request, _ := http.NewRequest(
 				http.MethodPost,
-				fmt.Sprintf("/auth/%s/token", authN.Endpoint()),
+				fmt.Sprintf("/auth/%s/tokens", authN.Endpoint()),
 				bytes.NewBuffer(test.body),
 			)
 			recorder := httptest.NewRecorder()
@@ -163,7 +163,7 @@ func TestWithAddlAuthN(t *testing.T) {
 
 	request, _ := http.NewRequest(
 		http.MethodPost,
-		fmt.Sprintf("/auth/%s/token", authN1.Endpoint()),
+		fmt.Sprintf("/auth/%s/tokens", authN1.Endpoint()),
 		bytes.NewBuffer([]byte(``)),
 	)
 	recorder1 := httptest.NewRecorder()
@@ -172,7 +172,7 @@ func TestWithAddlAuthN(t *testing.T) {
 
 	request, _ = http.NewRequest(
 		http.MethodPost,
-		fmt.Sprintf("/auth/%s/token", authN2.Endpoint()),
+		fmt.Sprintf("/auth/%s/tokens", authN2.Endpoint()),
 		bytes.NewBuffer([]byte(``)),
 	)
 
